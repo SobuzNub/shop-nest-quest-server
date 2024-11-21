@@ -33,30 +33,68 @@ async function run() {
         const testimonialCollection = client.db('shopNest').collection('reviews');
         const featuredCollection = client.db('shopNest').collection('featuredProduct')
         const categoryCollection = client.db('shopNest').collection('category')
+        const usersCollection = client.db('shopNest').collection('users')
 
 
         // jwt related api
-        app.post('/jwt', async(req, res) =>{
+        app.post('/jwt', async (req, res) => {
             const user = req.body;
-            const token = jwt.sign(user, process.env.ACCESS_TOKEN_SECRET, {expiresIn: '1h'})
-            res.send({token})
+            const token = jwt.sign(user, process.env.ACCESS_TOKEN_SECRET, { expiresIn: '1h' })
+            res.send({ token })
         })
 
         // get testimonial data in db
-        app.get('/testimonial', async(req, res) =>{
+        app.get('/testimonial', async (req, res) => {
             const result = await testimonialCollection.find().toArray();
             res.send(result);
-        }) 
+        })
 
         // get featured product data in db
-        app.get('/featured', async(req, res) =>{
+        app.get('/featured', async (req, res) => {
             const result = await featuredCollection.find().toArray();
             res.send(result);
         })
 
         // get category product in db
-        app.get('/category', async(req, res) =>{
+        app.get('/category', async (req, res) => {
             const result = await categoryCollection.find().toArray();
+            res.send(result);
+        })
+
+        // save user data in db
+        app.put('/users', async (req, res) => {
+            const user = req.body;
+            const query = { email: user?.email }
+
+
+            // check if user already in db
+            const isExist = await usersCollection.findOne(query)
+            if (isExist){
+                if(user.status === 'Requested'){
+                    const result = await usersCollection.updateOne(query, {$set: {status: user?.status}})
+                    return res.send(result)
+                }else{
+                    return res.send(isExist)
+                }
+            }
+
+            // save user for the first time
+            const options = { upsert: true }
+            const updateDoc = {
+                $set: {
+                    ...user,
+                    timeStamp: Date.now()
+                }
+            }
+            const result = await usersCollection.updateOne(query, updateDoc, options)
+            res.send(result)
+
+        })
+
+        // get user role in db
+        app.get('/user/:email', async (req, res) => {
+            const email = req.params.email;
+            const result = await usersCollection.findOne({ email });
             res.send(result);
         })
 
