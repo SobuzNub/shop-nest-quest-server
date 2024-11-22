@@ -158,10 +158,38 @@ async function run() {
         })
 
         // delete user in db
-        app.delete('/user/:id', async(req, res) =>{
+        app.delete('/user/:id', async (req, res) => {
             const id = req.params.id;
-            const query = {_id: new ObjectId(id)}
+            const query = { _id: new ObjectId(id) }
             const result = await usersCollection.deleteOne(query);
+            res.send(result);
+        })
+
+        // save a room data in db
+        app.post('/product', async (req, res) => {
+            const productData = req.body;
+            const result = await allProductsCollection.insertOne(productData);
+            res.send(result);
+        })
+
+        // get all rooms from host
+        app.get('/my-listings/:email', async (req, res) => {
+            const email = req.params.email
+
+            let query = { 'seller.email': email }
+            const result = await allProductsCollection.find(query).toArray();
+            res.send(result);
+        })
+
+        // update room data
+        app.put('/product/update/:id',  async (req, res) => {
+            const id = req.params.id;
+            const query = { _id: new ObjectId(id) }
+            const productData = req.body;
+            const updateDoc = {
+                $set: productData,
+            }
+            const result = await allProductsCollection.updateOne(query, updateDoc)
             res.send(result);
         })
 
