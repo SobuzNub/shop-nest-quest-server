@@ -109,7 +109,7 @@ async function run() {
 
             const query = {}
 
-            if(title){
+            if(name){
                 query.name = {$regex: name, $options: "i"}
             }
 
