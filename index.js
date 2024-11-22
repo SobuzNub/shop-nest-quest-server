@@ -34,6 +34,7 @@ async function run() {
         const featuredCollection = client.db('shopNest').collection('featuredProduct')
         const categoryCollection = client.db('shopNest').collection('category')
         const usersCollection = client.db('shopNest').collection('users')
+        const allProductsCollection = client.db('shopNest').collection('allProducts')
 
 
         // jwt related api
@@ -96,6 +97,34 @@ async function run() {
             const email = req.params.email;
             const result = await usersCollection.findOne({ email });
             res.send(result);
+        })
+
+        // get all products
+        app.get('/all-products', async(req, res) =>{
+            // name searching
+            // sort by price
+            // filter by category
+            // filter by brand
+            const {name, sort, category, brand} = req.query
+
+            const query = {}
+
+            if(title){
+                query.name = {$regex: name, $options: "i"}
+            }
+
+            if(category) {
+                query.category = {$regex: category, $options: "i"}
+            }
+
+            if(brand) {
+                query.brand = brand
+            }
+
+            const sortOption = sort === 'asc' ? 1 : -1
+
+            const products = await allProductsCollection.find(query).sort({price: sortOption}).toArray();
+            res.json(products)
         })
 
 
