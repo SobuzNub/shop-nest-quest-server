@@ -182,7 +182,7 @@ async function run() {
         })
 
         // update room data
-        app.put('/product/update/:id',  async (req, res) => {
+        app.put('/product/update/:id', async (req, res) => {
             const id = req.params.id;
             const query = { _id: new ObjectId(id) }
             const productData = req.body;
@@ -192,6 +192,21 @@ async function run() {
             const result = await allProductsCollection.updateOne(query, updateDoc)
             res.send(result);
         })
+
+        // delete a booking data
+        app.delete('/room/:id', async (req, res) => {
+            const id = req.params.id;
+            const query = { _id: new ObjectId(id) }
+            const result = await allProductsCollection.deleteOne(query);
+            res.send(result);
+          })
+
+          // add to wishlist
+          app.post('/wishlist', async (req, res) => {
+            const cartItem = req.body;
+            const result = await cartCollection.insertOne(cartItem);
+            res.send(result);
+          })
 
 
         // Send a ping to confirm a successful connection
