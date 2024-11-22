@@ -70,11 +70,11 @@ async function run() {
 
             // check if user already in db
             const isExist = await usersCollection.findOne(query)
-            if (isExist){
-                if(user.status === 'Requested'){
-                    const result = await usersCollection.updateOne(query, {$set: {status: user?.status}})
+            if (isExist) {
+                if (user.status === 'Requested') {
+                    const result = await usersCollection.updateOne(query, { $set: { status: user?.status } })
                     return res.send(result)
-                }else{
+                } else {
                     return res.send(isExist)
                 }
             }
@@ -100,31 +100,40 @@ async function run() {
         })
 
         // get all products
-        app.get('/all-products', async(req, res) =>{
+        app.get('/all-products', async (req, res) => {
             // name searching
             // sort by price
             // filter by category
             // filter by brand
-            const {name, sort, category, brand} = req.query
+            const { name, sort, category, brand } = req.query
 
             const query = {}
 
-            if(name){
-                query.name = {$regex: name, $options: "i"}
+            if (name) {
+                query.name = { $regex: name, $options: "i" }
             }
 
-            if(category) {
-                query.category = {$regex: category, $options: "i"}
+            if (category) {
+                query.category = { $regex: category, $options: "i" }
             }
 
-            if(brand) {
+            if (brand) {
                 query.brand = brand
             }
 
             const sortOption = sort === 'asc' ? 1 : -1
 
-            const products = await allProductsCollection.find(query).sort({price: sortOption}).toArray();
-            res.json(products)
+            const products = await allProductsCollection.find(query).sort({ price: sortOption }).toArray();
+
+            const totalProducts = await allProductsCollection.countDocuments(query)
+            const productInfo = await allProductsCollection.find({}, { projection: { category: 1, brand: 1 } }).toArray();
+
+
+            const categories = [... new Set(productInfo.map((product) => product.category))]
+            const brands = [... new Set(productInfo.map((product) => product.brand))]
+
+
+            res.json({ products, brands, categories, totalProducts });
         })
 
 
