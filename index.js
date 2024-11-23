@@ -35,6 +35,7 @@ async function run() {
         const categoryCollection = client.db('shopNest').collection('category')
         const usersCollection = client.db('shopNest').collection('users')
         const allProductsCollection = client.db('shopNest').collection('allProducts')
+        const wishCollection = client.db('shopNest').collection('wishList')
 
 
         // jwt related api
@@ -204,7 +205,23 @@ async function run() {
           // add to wishlist
           app.post('/wishlist', async (req, res) => {
             const cartItem = req.body;
-            const result = await cartCollection.insertOne(cartItem);
+            const result = await wishCollection.insertOne(cartItem);
+            res.send(result);
+          })
+
+          // get wishlist data based on user
+          app.get('/wish/:email', async(req, res) =>{
+            const email = req.params.email;
+            const query = {email: email};
+            const result = await wishCollection.find(query).toArray();
+            res.send(result);
+          })
+
+          // delete wish data in db
+          app.delete('/delete-wish/:id', async(req, res) =>{
+            const id = req.params.id
+            const query = {_id: new ObjectId(id)}
+            const result = await wishCollection.deleteOne(query)
             res.send(result);
           })
 
