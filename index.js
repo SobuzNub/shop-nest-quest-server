@@ -12,6 +12,34 @@ app.use(cors());
 app.use(express.json());
 
 
+// verify token
+const verifyJWT = (req, res, next) => {
+    const authorization = req.header.authorization;
+    if (!authorization) {
+        return res.send({ message: 'No Token' })
+    }
+    const token = authorization.split(' ')[1];
+    jwt.verify(token, process.env.ACCESS_TOKEN_SECRET, (err, decoded) => {
+        if (err) {
+            return res.send({ message: 'Invalid Token' })
+        }
+        req.decoded = decoded;
+        next();
+    })
+}
+
+// verify seller
+const verifySeller = async (req, res, next) =>{
+    const email = req.decoded.email
+    const query = {email: email}
+    const user = await usersCollection.findOne(query)
+    if(user?.role !== 'seller'){
+        return res.send({message: 'Forbidden Access'})
+    }
+    next();
+}
+
+
 
 const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.tthwvj5.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0`;
@@ -106,7 +134,7 @@ async function run() {
             // sort by price
             // filter by category
             // filter by brand
-            const { name, sort, category, brand } = req.query
+            const { name, sort, category, brand, page = 1, limit = 9 } = req.query
 
             const query = {}
 
@@ -122,16 +150,19 @@ async function run() {
                 query.brand = brand
             }
 
+            const pageNumber = Number(page)
+            const limitNumber = Number(limit)
+
             const sortOption = sort === 'asc' ? 1 : -1
 
-            const products = await allProductsCollection.find(query).sort({ price: sortOption }).toArray();
+            const products = await allProductsCollection.find(query).skip((pageNumber - 1) * limitNumber).limit(limitNumber).sort({ price: sortOption }).toArray();
 
             const totalProducts = await allProductsCollection.countDocuments(query)
-            const productInfo = await allProductsCollection.find({}, { projection: { category: 1, brand: 1 } }).toArray();
 
 
-            const categories = [... new Set(productInfo.map((product) => product.category))]
-            const brands = [... new Set(productInfo.map((product) => product.brand))]
+
+            const categories = [... new Set(products.map((product) => product.category))]
+            const brands = [... new Set(products.map((product) => product.brand))]
 
 
             res.json({ products, brands, categories, totalProducts });
@@ -166,14 +197,14 @@ async function run() {
             res.send(result);
         })
 
-        // save a room data in db
+        // save a product data in db
         app.post('/product', async (req, res) => {
             const productData = req.body;
             const result = await allProductsCollection.insertOne(productData);
             res.send(result);
         })
 
-        // get all rooms from host
+        // get all product from seller
         app.get('/my-listings/:email', async (req, res) => {
             const email = req.params.email
 
@@ -200,30 +231,38 @@ async function run() {
             const query = { _id: new ObjectId(id) }
             const result = await allProductsCollection.deleteOne(query);
             res.send(result);
-          })
+        })
 
-          // add to wishlist
-          app.post('/wishlist', async (req, res) => {
+        // add to wishlist
+        app.post('/wishlist', async (req, res) => {
             const cartItem = req.body;
             const result = await wishCollection.insertOne(cartItem);
             res.send(result);
-          })
+        })
 
-          // get wishlist data based on user
-          app.get('/wish/:email', async(req, res) =>{
+        // get wishlist data based on user
+        app.get('/wish/:email', async (req, res) => {
             const email = req.params.email;
-            const query = {email: email};
+            const query = { email: email };
             const result = await wishCollection.find(query).toArray();
             res.send(result);
-          })
+        })
 
-          // delete wish data in db
-          app.delete('/delete-wish/:id', async(req, res) =>{
+        // delete wish data in db
+        app.delete('/delete-wish/:id', async (req, res) => {
             const id = req.params.id
-            const query = {_id: new ObjectId(id)}
+            const query = { _id: new ObjectId(id) }
             const result = await wishCollection.deleteOne(query)
             res.send(result);
-          })
+        })
+
+        // get product based on id
+        app.get('/product/:id', async (req, res) => {
+            const id = req.params.id;
+            const query = { _id: new ObjectId(id) }
+            const result = await allProductsCollection.findOne(query)
+            res.send(result);
+        })
 
 
         // Send a ping to confirm a successful connection
